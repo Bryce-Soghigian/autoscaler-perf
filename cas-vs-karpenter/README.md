@@ -1,27 +1,35 @@
 # Cluster Autoscaler of 10 years in development, or AKS Karpenter of 10 months into development, which reigns supreme?
 This document serves as a measurement of cluster autoscaler vs karpenter performance of the preview karpenter product.
 
-
 ## Benchmarks 
 What will be attempting 
-
 1. Time to 500 nodes 
 2. Time to schedule 1000 pods
-3. Price for scale up and down in the pattern of 10, 50, 100, 250, 100, 50, 10 pods
+3. Price for scale up and down in the pattern of 10, 50, 100, 250, 100, 50, 10 pods. 
 
 
-We will track these things via prometheus, and need a cron job to scale up the deployment 
-
-
-
+We will track these things via prometheus
 The Clusters we will create will be: 
-karpenter-default
+karpenter-arm-spot
 karpenter-custom-batch 
 cas-default 
 cas-cost-optimized-bin-packed
+cas-bursty
+Each representing a different optimization goal
 
 
-We will use these clusters to perform the tests
+The Base Cluster Configuration we will use is the following
+```
+az aks create -g cas-clusters -n $clusterName \
+--node-count 10 \
+--enable-addons monitoring \
+--generate-ssh-keys \
+--tier standard \
+--network-plugin azure --network-plugin-mode overlay --network-dataplane cilium 
+```
+WE will use Cilium and Azure, alongside a paid tier apiserver via the aks standard tier
+
+
 
 ### Cluster Autoscaler Profiles 
 1. Default Autoscaler: Using the standard defaults aks sets 
@@ -74,5 +82,4 @@ To give cluster autoscaler a fighting chance, we should give it nodepools with 2
 ### Karpenter Configuration 
 For Time to schedule 1000 pods, we will give karpenter its default nap settings. As for Time to 500 nodes, we will have to artificially limit the size of the nodepool to be for small nodes. We can use the karpenter perf scripts present in the aks karpenter provider repo
 
-For the Large node run we will set the batch interval to 30 seconds to have parity with Cluster Autoscaler's ideal configuration
-
+For the Large node run we will set the batch interval to 30 seconds to have parity with Cluster Autoscaler's ideal configuration. Note we will just be running with sta
